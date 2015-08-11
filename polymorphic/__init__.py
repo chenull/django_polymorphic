@@ -8,12 +8,6 @@ Please see LICENSE and AUTHORS for more information.
 """
 from __future__ import absolute_import
 import django
-from .polymorphic_model import PolymorphicModel
-from .manager import PolymorphicManager
-from .query import PolymorphicQuerySet
-from .query_translate import translate_polymorphic_Q_object
-from .showfields import ShowFieldContent, ShowFieldType, ShowFieldTypeAndContent
-from .showfields import ShowFields, ShowFieldTypes, ShowFieldsAndTypes  # import old names for compatibility
 
 
 # Monkey-patch Django < 1.5 to allow ContentTypes for proxy models.
