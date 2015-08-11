@@ -290,7 +290,8 @@ class PolymorphicQuerySet(QuerySet):
                 try:
                     o = next(base_iter)
                     base_result_objects.append(o)
-                except StopIteration:
+                # except StopIteration: # FIXME: Nasty HACK
+                except:
                     reached_end = True
                     break
 
