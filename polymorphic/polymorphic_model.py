@@ -16,7 +16,7 @@ Please see LICENSE and AUTHORS for more information.
 from __future__ import absolute_import
 
 from django.db import models
-from django.contrib.contenttypes.models import ContentType
+from django.apps import apps
 from django.utils import six
 
 from .base import PolymorphicModelBase
@@ -55,7 +55,7 @@ class PolymorphicModel(six.with_metaclass(PolymorphicModelBase, models.Model)):
         abstract = True
 
     # avoid ContentType related field accessor clash (an error emitted by model validation)
-    polymorphic_ctype = models.ForeignKey(ContentType, null=True, editable=False,
+    polymorphic_ctype = models.ForeignKey('contenttypes.ContentType', null=True, editable=False,
                                 related_name='polymorphic_%(app_label)s.%(class)s_set+')
 
     # some applications want to know the name of the fields that are added to its models
@@ -78,6 +78,7 @@ class PolymorphicModel(six.with_metaclass(PolymorphicModelBase, models.Model)):
         field to figure out the real class of this object
         (used by PolymorphicQuerySet._get_real_instances)
         """
+        ContentType = apps.get_model('contenttypes.ContentType')
         if not self.polymorphic_ctype_id:
             self.polymorphic_ctype = ContentType.objects.get_for_model(self, for_concrete_model=False)
     pre_save_polymorphic.alters_data = True
@@ -101,6 +102,7 @@ class PolymorphicModel(six.with_metaclass(PolymorphicModelBase, models.Model)):
         # so we use the following version, which uses the ContentType manager cache.
         # Note that model_class() can return None for stale content types;
         # when the content type record still exists but no longer refers to an existing model.
+        ContentType = apps.get_model('contenttypes.ContentType')
         try:
             model = ContentType.objects.get_for_id(self.polymorphic_ctype_id).model_class()
         except AttributeError:
@@ -121,12 +123,14 @@ class PolymorphicModel(six.with_metaclass(PolymorphicModelBase, models.Model)):
         model_class = self.get_real_instance_class()
         if model_class is None:
             return None
+        ContentType = apps.get_model('contenttypes.ContentType')
         return ContentType.objects.get_for_model(model_class, for_concrete_model=True).pk
 
     def get_real_concrete_instance_class(self):
         model_class = self.get_real_instance_class()
         if model_class is None:
             return None
+        ContentType = apps.get_model('contenttypes.ContentType')
         return ContentType.objects.get_for_model(model_class, for_concrete_model=True).model_class()
 
     def get_real_instance(self):
@@ -194,17 +198,17 @@ class PolymorphicModel(six.with_metaclass(PolymorphicModelBase, models.Model)):
                 and model != PolymorphicModel):
                 add_model(model, field_name, result)
 
-        def add_all_super_models(model, result):    
+        def add_all_super_models(model, result):
             for super_cls, field_to_super in model._meta.parents.items():
                 if field_to_super is not None:  #if not a link to a proxy model
                     field_name = field_to_super.name #the field on model can have a different name to super_cls._meta.module_name, if the field is created manually using 'parent_link'
                     add_model_if_regular(super_cls, field_name, result)
                     add_all_super_models(super_cls, result)
 
-        def add_all_sub_models(super_cls, result):            
-            for sub_cls in super_cls.__subclasses__(): #go through all subclasses of model  
+        def add_all_sub_models(super_cls, result):
+            for sub_cls in super_cls.__subclasses__(): #go through all subclasses of model
                 if super_cls in sub_cls._meta.parents: #super_cls may not be in sub_cls._meta.parents if super_cls is a proxy model
-                    field_to_super = sub_cls._meta.parents[super_cls] #get the field that links sub_cls to super_cls    
+                    field_to_super = sub_cls._meta.parents[super_cls] #get the field that links sub_cls to super_cls
                     if field_to_super is not None:    # if filed_to_super is not a link to a proxy model
                         super_to_sub_related_field = field_to_super.rel
                         if super_to_sub_related_field.related_name is None:
@@ -213,7 +217,7 @@ class PolymorphicModel(six.with_metaclass(PolymorphicModelBase, models.Model)):
                         else:
                             #otherwise use the given related name
                             to_subclass_fieldname = super_to_sub_related_field.related_name
-                            
+
                         add_model_if_regular(sub_cls, to_subclass_fieldname, result)
 
         result = {}

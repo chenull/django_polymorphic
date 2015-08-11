@@ -8,7 +8,7 @@ from collections import defaultdict
 
 import django
 from django.db.models.query import QuerySet
-from django.contrib.contenttypes.models import ContentType
+from django.apps import apps
 from django.utils import six
 
 from .query_translate import translate_polymorphic_filter_definitions_in_kwargs, translate_polymorphic_filter_definitions_in_args
@@ -161,6 +161,7 @@ class PolymorphicQuerySet(QuerySet):
         Finally we re-sort the resulting objects into the correct order and
         return them as a list.
         """
+        ContentType = apps.get_model('contenttypes.ContentType')
         ordered_id_list = []    # list of ids of result-objects in correct order
         results = {}            # polymorphic dict of result-objects, keyed with their id (no order)
 
